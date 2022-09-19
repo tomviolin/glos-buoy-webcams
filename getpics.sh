@@ -2,8 +2,7 @@
 
 LC_ALL=en_US.utf8
 PAGER=more
-PATH=/var/services/homes/glosbuoys/.local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/usr/syno/sbin:/usr/syno/bin:/usr/local/sbin:/usr/local/bin
-PGDATA=/var/services/pgsql
+#PATH=/var/services/homes/glosbuoys/.local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/usr/syno/sbin:/usr/syno/bin:/usr/local/sbin:/usr/local/bin
 
 DATE=`date "+%Y-%m-%d %H:%M:%S"`
 YEAR=`date -d "$DATE" +%Y`
@@ -17,7 +16,6 @@ SMTPSERVER="smtp://129.89.7.85:25/"
 MOVIE_FORMAT=mp4
 
 echo $YEAR-$MONTH-$DAY-$HOUR-$MINUTE
-cd /var/services/homes/glosbuoys
 
 IFS=,
 echo "== START OF BUOY LOOP =="
@@ -49,25 +47,25 @@ while read buoyname buoyaddr buoytz buoylat buoylong buoydesc buoyrtsp; do
 	
 	# SHIP OFF TO SHAREPOINT
 	if [ -f /tmp/${buoyname}_LATEST.jpg ]; then
-		BUOY_ATT="$BUOY_ATT -F \"attachment=@/tmpr/${buoyname}_LATEST.jpg\;encoder=base64\""
-		docker run -v /tmp:/tmpr -t ubunturun curl --url $SMTPSERVER --mail-from 'GLOS-Buoy-Data-Group@uwm.edu' --mail-rcpt 'GLOS-Buoy-Data-Group@uwm.edu' -F '=Latest image from '"$buoyname"' ;type=text/plain' -F "attachment=@/tmpr/${buoyname}_LATEST.jpg;encoder=base64" -H "Subject: GLOS automated image update from $buoyname"
+		BUOY_ATT="$BUOY_ATT -F \"attachment=@/tmp/${buoyname}_LATEST.jpg\;encoder=base64\""
+		curl --url $SMTPSERVER --mail-from 'GLOS-Buoy-Data-Group@uwm.edu' --mail-rcpt 'GLOS-Buoy-Data-Group@uwm.edu' -F '=Latest image from '"$buoyname"' ;type=text/plain' -F "attachment=@/tmp/${buoyname}_LATEST.jpg;encoder=base64" -H "Subject: GLOS automated image update from $buoyname"
 	fi
 
 	if [ "$buoyrtsp" != "" ]; then
-		docker run -t -v /tmp:/tmpr ubunturun ffmpeg -rtsp_transport tcp -i $buoyrtsp -frames 60 -s 960x540 -c:v h264 -preset veryslow -vf "drawtext=text='%{localtime\:%T}': fontcolor=white:fontsize=50:box=1:boxcolor=black@0.7: x=70: y=510" /tmpr/getpics$$.$MOVIE_FORMAT -y
+		ffmpeg -rtsp_transport tcp -i $buoyrtsp -frames 60 -s 960x540 -c:v h264 -preset veryslow -vf "drawtext=text='%{localtime\:%T}': fontcolor=white:fontsize=50:box=1:boxcolor=black@0.7: x=70: y=510" /tmp/getpics$$.$MOVIE_FORMAT -y
 		cp /tmp/getpics$$.$MOVIE_FORMAT /tmp/${buoyname}_LATEST.$MOVIE_FORMAT 
 		# SHIP OFF TO SHAREPOINT
 		if [ -f /tmp/${buoyname}_LATEST.$MOVIE_FORMAT ]; then
-			BUOY_ATT="$BUOY_ATT -F attachment=@/tmpr/${buoyname}_LATEST.$MOVIE_FORMAT\;encoder=base64"
-			docker run -t -v /tmp:/tmpr ubunturun curl --url $SMTPSERVER --mail-from 'GLOS-Buoy-Data-Group@uwm.edu' --mail-rcpt 'GLOS-Buoy-Data-Group@uwm.edu' -F "=Latest movie from ${buoyname} ;type=text/plain" -F "attachment=@/tmpr/${buoyname}_LATEST.$MOVIE_FORMAT;encoder=base64" -H "Subject: GLOS automated image update from $buoyname"
+			BUOY_ATT="$BUOY_ATT -F attachment=@/tmp/${buoyname}_LATEST.$MOVIE_FORMAT\;encoder=base64"
+			curl --url $SMTPSERVER --mail-from 'GLOS-Buoy-Data-Group@uwm.edu' --mail-rcpt 'GLOS-Buoy-Data-Group@uwm.edu' -F "=Latest movie from ${buoyname} ;type=text/plain" -F "attachment=@/tmp/${buoyname}_LATEST.$MOVIE_FORMAT;encoder=base64" -H "Subject: GLOS automated image update from $buoyname"
 		fi
 	fi
 
 	if [ -f /tmp/getpics$$.jpg ]; then
-		docker run -t -v /tmp:/tmpr ubunturun rm -f /tmpr/getpics$$.jpg
+		rm -f /tmp/getpics$$.jpg
 	fi
 	if [ -f /tmp/getpics$$.$MOVIE_FORMAT ]; then
-		docker run -t -v /tmp:/tmpr ubunturun rm -f /tmpr/getpics$$.$MOVIE_FORMAT
+		rm -f /tmpr/getpics$$.$MOVIE_FORMAT
 	fi
 	export TZ="$thistz"
 done < stations.csv

@@ -1,0 +1,6 @@
+
+# m h  dom mon dow   command
+
+@reboot      /getpics.sh
+*/15 * * * * /getpics.sh
+
